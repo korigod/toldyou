@@ -1,0 +1,151 @@
+import os
+import logging
+import datetime as dt
+from uuid import uuid4
+
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
+from telegram.ext import (CommandHandler,
+                          InlineQueryHandler,
+                          Updater,
+                          MessageHandler,
+                          Filters,
+                          ConversationHandler)
+from telegram.utils.helpers import escape_markdown
+
+import db
+
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+bot_data = db.get_bot_data()
+
+
+def store_phrase(user_id, phrase):
+    record = {'user': user_id,
+              'created': dt.datetime.utcnow(),
+              'text': phrase}
+    inserted_id = bot_data.insert_one(record)
+    return inserted_id
+
+
+def get_users_stored_records(user_id):
+    """Returns Mongo cursor"""
+    records = bot_data.find({'user': user_id})
+    return records
+
+
+def delete_all_users_records(user_id):
+    bot_data.delete_many({'user': user_id})
+
+
+def start_command(bot, update):
+    update.message.reply_text('Hi! Use /store to store a new prophecy or /list '
+                              'to list already made ones.')
+
+
+def store_command(bot, update):
+    update.message.reply_text('Ok, now send me a text to store.')
+    return 'STORE_PHRASE'
+
+
+def store_phrase_handler(bot, update):
+    user_id = update.message.from_user.id
+    store_phrase(user_id, update.message.text)
+    update.message.reply_text('Got it!')
+    return ConversationHandler.END
+
+
+def list_command(bot, update):
+    user_id = update.message.from_user.id
+    users_records = get_users_stored_records(user_id)
+
+    if users_records.count() == 0:
+        update.message.reply_text('Nothing is stored yet!')
+
+    else:
+        update.message.reply_text('Here we go:')
+        for item in users_records:
+            text = '_{}:_\n{}'.format(str(item['created']), item['text'])
+            update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
+def delete_all_command(bot, update):
+    update.message.reply_text('Type uppercase YES to delete all the records, '
+                              'anything else to cancel.')
+    return 'DELETE_ALL_RECORDS'
+
+
+def delete_all_records_handler(bot, update):
+    message = update.message.text
+    if message == 'YES':
+        user_id = update.message.from_user.id
+        delete_all_users_records(user_id)
+        update.message.reply_text('All stored records have been deleted.')
+    else:
+        update.message.reply_text('Deleting is cancelled.')
+    return ConversationHandler.END
+
+
+def inlinequery(bot, update):
+    query = update.inline_query.query
+    results = [
+        InlineQueryResultArticle(
+            id=uuid4(),
+            title="Caps",
+            input_message_content=InputTextMessageContent(
+                query.upper())),
+        InlineQueryResultArticle(
+            id=uuid4(),
+            title="Bold",
+            input_message_content=InputTextMessageContent(
+                "*{}*".format(escape_markdown(query)),
+                parse_mode=ParseMode.MARKDOWN)),
+        InlineQueryResultArticle(
+            id=uuid4(),
+            title="Italic",
+            input_message_content=InputTextMessageContent(
+                "_{}_".format(escape_markdown(query)),
+                parse_mode=ParseMode.MARKDOWN))]
+
+    update.inline_query.answer(results)
+
+
+def cancel_command(bot, update):
+    pass
+
+
+def error(bot, update, error):
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, error)
+
+
+def main():
+    updater = Updater(os.environ['TELEGRAM_BOT_TOKEN'])
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler('start', start_command))
+    dp.add_handler(CommandHandler('list', list_command))
+
+    conv_handler = ConversationHandler(
+        entry_points=[CommandHandler('store', store_command),
+                      CommandHandler('delete_all', delete_all_command)],
+
+        states={
+            'STORE_PHRASE': [MessageHandler(Filters.text, store_phrase_handler)],
+            'DELETE_ALL_RECORDS': [MessageHandler(Filters.text, delete_all_records_handler)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel_command)]
+    )
+
+    dp.add_handler(conv_handler)
+    dp.add_handler(InlineQueryHandler(inlinequery))
+    dp.add_error_handler(error)
+
+    updater.start_polling()
+    updater.idle()
+
+
+if __name__ == '__main__':
+    main()
