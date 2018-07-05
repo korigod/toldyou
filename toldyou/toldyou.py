@@ -108,7 +108,7 @@ def inline_query(bot, update):
     results = []
     for record in user_records:
         record_created_dt_str = record['created'].strftime(DATETIME_FORMAT)
-        text_to_send = '{} sent at {}:\n{}'.format(user_mention,
+        text_to_send = '{} told at {}:\n{}'.format(user_mention,
                                                    record_created_dt_str,
                                                    record['text'])
 
