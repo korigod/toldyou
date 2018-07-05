@@ -15,7 +15,7 @@ from telegram.utils.helpers import escape_markdown
 import db
 
 
-DATETIME_FORMAT = '%d.%m.%Y %H:%M:%S'
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
