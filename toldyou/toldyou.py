@@ -88,26 +88,31 @@ def delete_all_records_handler(bot, update):
     return ConversationHandler.END
 
 
-def inlinequery(bot, update):
-    query = update.inline_query.query
-    results = [
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="Caps",
-            input_message_content=InputTextMessageContent(
-                query.upper())),
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="Bold",
-            input_message_content=InputTextMessageContent(
-                "*{}*".format(escape_markdown(query)),
-                parse_mode=ParseMode.MARKDOWN)),
-        InlineQueryResultArticle(
-            id=uuid4(),
-            title="Italic",
-            input_message_content=InputTextMessageContent(
-                "_{}_".format(escape_markdown(query)),
-                parse_mode=ParseMode.MARKDOWN))]
+def inline_query(bot, update):
+    # query = update.inline_query.query
+    user = update.inline_query.from_user
+    user_records = get_users_stored_records(user.id)
+
+    if user.username:
+        username_to_mention = '@' + user.username
+    else:
+        username_to_mention = user.first_name + user.last_name
+
+    # Renders to @username mention
+    user_mention = '[{}](tg://user?id={})'.format(username_to_mention, user.id)
+
+    results = []
+    for record in user_records:
+        text_to_send = '{} sent at {}:\n{}'.format(user_mention,
+                                                   str(record['created']),
+                                                   record['text'])
+        message = InputTextMessageContent(text_to_send,
+                                          parse_mode=ParseMode.MARKDOWN)
+        result = InlineQueryResultArticle(id=uuid4(),
+                                          title=record['text'],
+                                          description=str(record['created']),
+                                          input_message_content=message)
+        results.append(result)
 
     update.inline_query.answer(results)
 
@@ -140,7 +145,7 @@ def main():
     )
 
     dp.add_handler(conv_handler)
-    dp.add_handler(InlineQueryHandler(inlinequery))
+    dp.add_handler(InlineQueryHandler(inline_query))
     dp.add_error_handler(error)
 
     updater.start_polling()
