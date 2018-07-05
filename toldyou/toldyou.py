@@ -45,7 +45,8 @@ def delete_all_users_records(user_id):
 
 def start_command(bot, update):
     update.message.reply_text('Hi! Use /store to store a new prophecy or /list '
-                              'to list already made ones.')
+                              'to list already made ones. Please note: this is '
+                              'an alpha version, your data can be lost.')
 
 
 def store_command(bot, update):
