@@ -15,6 +15,9 @@ from telegram.utils.helpers import escape_markdown
 import db
 
 
+DATETIME_FORMAT = '%d.%m.%Y %H:%M:%S'
+
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,7 +70,8 @@ def list_command(bot, update):
     else:
         update.message.reply_text('Here we go:')
         for item in users_records:
-            text = '_{}:_\n{}'.format(str(item['created']), item['text'])
+            text = '_{}:_\n{}'.format(item['created'].strftime(DATETIME_FORMAT),
+                                      item['text'])
             update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 
@@ -103,15 +107,19 @@ def inline_query(bot, update):
 
     results = []
     for record in user_records:
+        record_created_dt_str = record['created'].strftime(DATETIME_FORMAT)
         text_to_send = '{} sent at {}:\n{}'.format(user_mention,
-                                                   str(record['created']),
+                                                   record_created_dt_str,
                                                    record['text'])
+
         message = InputTextMessageContent(text_to_send,
                                           parse_mode=ParseMode.MARKDOWN)
+
         result = InlineQueryResultArticle(id=uuid4(),
                                           title=record['text'],
-                                          description=str(record['created']),
+                                          description=record_created_dt_str,
                                           input_message_content=message)
+
         results.append(result)
 
     update.inline_query.answer(results)
