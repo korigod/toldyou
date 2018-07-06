@@ -4,6 +4,7 @@ import datetime as dt
 from enum import Enum
 from uuid import uuid4
 
+from bson.binary import Binary
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import (CommandHandler,
                           InlineQueryHandler,
@@ -14,12 +15,14 @@ from telegram.ext import (CommandHandler,
 from telegram.utils.helpers import escape_markdown
 
 import db
+import certify
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class RecordType(Enum):
     PHRASE = 1
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
@@ -29,10 +32,13 @@ bot_data = db.get_bot_data()
 
 
 def store_phrase(user_id, phrase):
+    timestamp = certify.generate(bytes(phrase, 'UTF-8'))
     record = {'user': user_id,
               'created': dt.datetime.utcnow(),
               'text': phrase,
-              'type': RecordType.PHRASE}
+              'type': RecordType.PHRASE,
+              'stamp': Binary(certify.serialize(timestamp)),
+              'blockchained': None}
     inserted_id = bot_data.insert_one(record)
     return inserted_id
 
