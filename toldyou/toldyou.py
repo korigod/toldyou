@@ -19,11 +19,6 @@ import certify
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-
-class RecordType(Enum):
-    PHRASE = 1
-
-
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -36,7 +31,7 @@ def store_phrase(user_id, phrase):
     record = {'user': user_id,
               'created': dt.datetime.utcnow(),
               'text': phrase,
-              'type': RecordType.PHRASE,
+              'type': 'PHRASE',
               'stamp': Binary(certify.serialize(timestamp)),
               'blockchained': None}
     inserted_id = bot_data.insert_one(record)
