@@ -81,6 +81,14 @@ def list_command(bot, update):
     else:
         update.message.reply_text('Here we go:')
         for record in users_records:
+            if record['blockchained'] is None:
+                timestamp = certify.deserialize(record['stamp'])
+                if certify.upgrade(timestamp) is True:
+                    record['blockchained'] = dt.datetime.utcnow()
+                    stamp_hex = certify.serialize(timestamp).hex()
+                    link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
+                    update.message.reply_text('[Certificate]({})'.format(link),
+                                              parse_mode=ParseMode.MARKDOWN)
             text = '_{}:_\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
                                       record['text'])
             update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
