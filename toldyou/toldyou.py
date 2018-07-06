@@ -22,7 +22,7 @@ class RecordType(Enum):
     PHRASE = 1
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 bot_data = db.get_bot_data()
