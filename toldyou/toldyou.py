@@ -79,17 +79,32 @@ def list_command(bot, update):
 
     else:
         update.message.reply_text('Here we go:')
+
         for record in users_records:
+            link = None
+
             if record['blockchained'] is None:
                 timestamp = certify.deserialize(record['stamp'])
                 if certify.upgrade(timestamp) is True:
-                    record['blockchained'] = dt.datetime.utcnow()
+                    bot_data.update_one({'_id': record['_id']}, {
+                                        '$set': {
+                                            'blockchained': dt.datetime.utcnow(),
+                                            'stamp': Binary(certify.serialize(timestamp))
+                                        }})
                     stamp_hex = certify.serialize(timestamp).hex()
                     link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
-                    update.message.reply_text('[Certificate]({})'.format(link),
-                                              parse_mode=ParseMode.MARKDOWN)
-            text = '_{}:_\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
-                                      record['text'])
+
+            else:
+                stamp_hex = record['stamp'].hex()
+                link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
+
+            if link is not None:
+                certificate_text = '[Blockchain certificate]({})'.format(link)
+            else:
+                certificate_text = '_Blockchain verification is pending_'
+
+            text = '_{}:_\n{}\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
+                                          record['text'], certificate_text)
             update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 
