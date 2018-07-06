@@ -42,11 +42,13 @@ def generate(msg_bytes):
     except Exception as error:
         logging.debug(str(error))
 
-    return timestamp
+    return file_timestamp
 
 
-def upgrade(timestamp):
+def upgrade(file_timestamp):
     '''Upgrade the certificate to Bitcoin blockchain verified one if possible'''
+
+    timestamp = file_timestamp.timestamp
 
     calendar = RemoteCalendar(CALENDAR_URL)
 
