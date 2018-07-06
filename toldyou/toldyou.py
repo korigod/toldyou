@@ -165,12 +165,19 @@ def inline_query(bot, update):
     results = []
     for record in user_records:
         record_created_dt_str = record['created'].strftime(DATETIME_FORMAT)
-        text_to_send = '{} told at *{}*:\n{}'.format(user_mention,
-                                                     record_created_dt_str,
-                                                     record['text'])
+
+        if record['blockchained'] is None:
+            upgrade_record_certificate(record)
+        certificate_text = get_certificate_link_text(record)
+
+        text_to_send = '{} told at *{}*:\n{}\n{}'.format(user_mention,
+                                                         record_created_dt_str,
+                                                         record['text'],
+                                                         certificate_text)
 
         message = InputTextMessageContent(text_to_send,
-                                          parse_mode=ParseMode.MARKDOWN)
+                                          parse_mode=ParseMode.MARKDOWN,
+                                          disable_web_page_preview=True)
 
         result = InlineQueryResultArticle(id=uuid4(),
                                           title=record['text'],
