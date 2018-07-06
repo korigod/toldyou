@@ -96,21 +96,16 @@ def upgrade_record_certificate(record):
 
 
 def start_command(bot, update):
-    update.message.reply_text('Hi! Use /store to store a new prophecy or /list '
-                              'to list already made ones. Please note: this is '
-                              'an alpha version, your data can be lost.')
-
-
-def store_command(bot, update):
-    update.message.reply_text('Ok, now send me a text to store.')
-    return 'STORE_PHRASE'
+    update.message.reply_text('Hi! Send me some text to store and verify or use '
+                              '/list command to list already stored phrases. '
+                              'Please note: this is an alpha version, your data '
+                              'can be lost.')
 
 
 def store_phrase_handler(bot, update):
     user = update.message.from_user
     update.message.reply_text('Got it!')
     store_phrase(user, update.message.text)
-    return ConversationHandler.END
 
 
 def list_command(bot, update):
@@ -209,18 +204,20 @@ def main():
     dp.add_handler(CommandHandler('list', list_command))
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('store', store_command),
-                      CommandHandler('delete_all', delete_all_command)],
+        entry_points=[CommandHandler('delete_all', delete_all_command)],
 
         states={
-            'STORE_PHRASE': [MessageHandler(Filters.text, store_phrase_handler)],
             'DELETE_ALL_RECORDS': [MessageHandler(Filters.text, delete_all_records_handler)]
         },
         fallbacks=[CommandHandler('cancel', cancel_command)]
     )
 
     dp.add_handler(conv_handler)
+
+    dp.add_handler(MessageHandler(Filters.text, store_phrase_handler))
+
     dp.add_handler(InlineQueryHandler(inline_query))
+
     dp.add_error_handler(error)
 
     updater.start_polling()
