@@ -66,8 +66,8 @@ def store_command(bot, update):
 
 def store_phrase_handler(bot, update):
     user_id = update.message.from_user.id
-    store_phrase(user_id, update.message.text)
     update.message.reply_text('Got it!')
+    store_phrase(user_id, update.message.text)
     return ConversationHandler.END
 
 
