@@ -52,6 +52,46 @@ def delete_all_users_records(user_id):
     bot_data.delete_many({'user': user_id})
 
 
+def timestamp_to_link(timestamp_binary):
+    """Returns markdown certificate link"""
+    stamp_hex = timestamp_binary.hex()
+    url = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
+    certificate_text = '[Blockchain certificate]({})'.format(url)
+    return certificate_text
+
+
+def get_certificate_link_text(record):
+    """Returns a markdown link or a notice that it's pending."""
+    if record['blockchained'] is not None:
+        return timestamp_to_link(record['stamp'])
+    else:
+        return '_Blockchain verification is pending_'
+
+
+def upgrade_record_certificate(record):
+    """
+    Upgrades the record IN-PLACE and returns whether the record was upgraded.
+    Performs database update as well. If the record was already blockchain
+    verified, returns False.
+    """
+    upgraded = False
+
+    if record['blockchained'] is None:
+        timestamp = certify.deserialize(record['stamp'])
+        if certify.upgrade(timestamp) is True:
+            upgraded = True
+            dt_now = dt.datetime.utcnow()
+            timestamp_binary = certify.serialize(timestamp)
+            record['blockchained'] = dt_now
+            record['stamp'] = timestamp_binary
+            bot_data.update_one({'_id': record['_id']}, {
+                                '$set': {
+                                    'blockchained': dt_now,
+                                    'stamp': Binary(timestamp_binary)
+                                }})
+    return upgraded
+
+
 def start_command(bot, update):
     update.message.reply_text('Hi! Use /store to store a new prophecy or /list '
                               'to list already made ones. Please note: this is '
@@ -81,29 +121,13 @@ def list_command(bot, update):
         update.message.reply_text('Here we go:')
 
         for record in users_records:
-            link = None
-
             if record['blockchained'] is None:
-                timestamp = certify.deserialize(record['stamp'])
-                if certify.upgrade(timestamp) is True:
-                    bot_data.update_one({'_id': record['_id']}, {
-                                        '$set': {
-                                            'blockchained': dt.datetime.utcnow(),
-                                            'stamp': Binary(certify.serialize(timestamp))
-                                        }})
-                    stamp_hex = certify.serialize(timestamp).hex()
-                    link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
-            else:
-                stamp_hex = record['stamp'].hex()
-                link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
+                upgrade_record_certificate(record)
 
-            if link is not None:
-                certificate_text = '[Blockchain certificate]({})'.format(link)
-            else:
-                certificate_text = '_Blockchain verification is pending_'
-
+            certificate_text = get_certificate_link_text(record)
             text = '_{}:_\n{}\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
-                                          record['text'], certificate_text)
+                                          record['text'],
+                                          certificate_text)
             update.message.reply_text(text,
                                       parse_mode=ParseMode.MARKDOWN,
                                       disable_web_page_preview=True)
@@ -127,7 +151,6 @@ def delete_all_records_handler(bot, update):
 
 
 def inline_query(bot, update):
-    # query = update.inline_query.query
     user = update.inline_query.from_user
     user_records = get_users_stored_records(user.id)
 
