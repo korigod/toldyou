@@ -30,9 +30,12 @@ logger = logging.getLogger(__name__)
 bot_data = db.get_bot_data()
 
 
-def store_phrase(user_id, phrase):
+def store_phrase(user, phrase):
+    """user should be telegram.User object"""
     timestamp = certify.generate(bytes(phrase, 'UTF-8'))
-    record = {'user': user_id,
+    record = {'user': user.id,
+              'username': user.username,
+              'user_full_name': user.full_name,
               'created': dt.datetime.utcnow(),
               'text': phrase,
               'type': 'PHRASE',
@@ -104,9 +107,9 @@ def store_command(bot, update):
 
 
 def store_phrase_handler(bot, update):
-    user_id = update.message.from_user.id
+    user = update.message.from_user
     update.message.reply_text('Got it!')
-    store_phrase(user_id, update.message.text)
+    store_phrase(user, update.message.text)
     return ConversationHandler.END
 
 
