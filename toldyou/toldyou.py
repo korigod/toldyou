@@ -93,7 +93,6 @@ def list_command(bot, update):
                                         }})
                     stamp_hex = certify.serialize(timestamp).hex()
                     link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
-
             else:
                 stamp_hex = record['stamp'].hex()
                 link = 'https://opentimestamps.org/info/?{}'.format(stamp_hex)
@@ -105,7 +104,9 @@ def list_command(bot, update):
 
             text = '_{}:_\n{}\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
                                           record['text'], certificate_text)
-            update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text(text,
+                                      parse_mode=ParseMode.MARKDOWN,
+                                      disable_web_page_preview=True)
 
 
 def delete_all_command(bot, update):
