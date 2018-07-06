@@ -2,7 +2,7 @@ import os
 import logging
 import hashlib
 import opentimestamps
-from opentimestamps.calendar import RemoteCalendar
+from opentimestamps.calendar import RemoteCalendar, CommitmentNotFoundError
 from opentimestamps.core.op import OpAppend, OpSHA256
 from opentimestamps.core.timestamp import Timestamp, DetachedTimestampFile
 from opentimestamps.core.serialize import (BytesSerializationContext,
@@ -59,7 +59,13 @@ def upgrade(file_timestamp):
         logging.debug('Already is Bitcoin verified!')
         return False
 
-    upgraded_timestamp = calendar.get_timestamp(root.msg)
+    try:
+        upgraded_timestamp = calendar.get_timestamp(root.msg)
+    except CommitmentNotFoundError:
+        # TODO: check for the exact reason
+        logging.debug("Still isn't Bitcoin verified!")
+        return False
+
     upgraded_root = _get_root(upgraded_timestamp)
 
     if not isinstance(list(upgraded_root.attestations)[0], BitcoinBlockHeaderAttestation):
