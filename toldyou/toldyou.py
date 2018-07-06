@@ -80,9 +80,9 @@ def list_command(bot, update):
 
     else:
         update.message.reply_text('Here we go:')
-        for item in users_records:
-            text = '_{}:_\n{}'.format(item['created'].strftime(DATETIME_FORMAT),
-                                      item['text'])
+        for record in users_records:
+            text = '_{}:_\n{}'.format(record['created'].strftime(DATETIME_FORMAT),
+                                      record['text'])
             update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 
