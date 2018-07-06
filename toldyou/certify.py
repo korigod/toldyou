@@ -14,6 +14,9 @@ from opentimestamps.core.notary import (PendingAttestation,
 CALENDAR_URL = 'https://a.pool.opentimestamps.org'
 
 
+logging.basicConfig(level=logging.DEBUG)
+
+
 def _get_root(timestamp):
     if timestamp.attestations:
         return timestamp
