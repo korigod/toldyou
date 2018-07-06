@@ -5,7 +5,8 @@ import opentimestamps
 from opentimestamps.calendar import RemoteCalendar
 from opentimestamps.core.op import OpAppend, OpSHA256
 from opentimestamps.core.timestamp import Timestamp, DetachedTimestampFile
-from opentimestamps.core.serialize import BytesSerializationContext
+from opentimestamps.core.serialize import (BytesSerializationContext,
+                                           BytesDeserializationContext)
 from opentimestamps.core.notary import (PendingAttestation,
                                         BitcoinBlockHeaderAttestation)
 
@@ -46,7 +47,7 @@ def generate(msg_bytes):
 
 
 def upgrade(file_timestamp):
-    '''Upgrade the certificate to Bitcoin blockchain verified one if possible'''
+    '''Upgrade IN-PLACE the certificate to Bitcoin blockchain verified one if possible.'''
 
     timestamp = file_timestamp.timestamp
 
@@ -67,9 +68,16 @@ def upgrade(file_timestamp):
 
     root.merge(upgraded_timestamp)
 
-    file_timestamp = DetachedTimestampFile(OpSHA256(), timestamp)
+    return True
 
+
+def serialize(timestamp):
+    '''timestamp arg is Timestamp or DetachedTimestampFile'''
     ctx = BytesSerializationContext()
-    file_timestamp.serialize(ctx)
-
+    timestamp.serialize(ctx)
     return ctx.getbytes()
+
+
+def deserialize(file_timestamp_bytes):
+    ctx = BytesDeserializationContext(file_timestamp_bytes)
+    return DetachedTimestampFile.deserialize(ctx)
