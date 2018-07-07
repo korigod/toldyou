@@ -3,6 +3,10 @@
 # file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import sys
+import threading
+import signal
+import time
 import logging
 import datetime as dt
 from enum import Enum
@@ -10,12 +14,8 @@ from uuid import uuid4
 
 from bson.binary import Binary
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
-from telegram.ext import (CommandHandler,
-                          InlineQueryHandler,
-                          Updater,
-                          MessageHandler,
-                          Filters,
-                          ConversationHandler)
+from telegram.ext import (Updater, Filters, CommandHandler, InlineQueryHandler,
+                          MessageHandler, ConversationHandler)
 from telegram.utils.helpers import escape_markdown
 
 import db
@@ -28,6 +28,39 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 bot_data = db.get_bot_data()
+
+upgrade_thread_stop_event = threading.Event()
+
+
+class StampUpgradeThread(threading.Thread):
+    def __init__(self, mongo_collection, event_to_stop, telegram_updater):
+        super().__init__()
+        self.collection = mongo_collection
+        self.stop = event_to_stop
+        self.updater = telegram_updater
+
+    def run(self):
+        while not self.stop.is_set():
+            start_time = time.perf_counter()
+            for record in self.collection.find({'blockchained': None}):
+                upgraded = upgrade_record_certificate(record)
+                if upgraded:
+                    link = get_certificate_link_text(record)
+                    text = ('_Your phrase was verified by Bitcoin '
+                            'blockchain:_\n{}\n{}'.format(record['text'], link))
+                    self.updater.bot.send_message(record['user'],
+                                                  text,
+                                                  parse_mode=ParseMode.MARKDOWN,
+                                                  disable_web_page_preview=True)
+                if self.stop.is_set():
+                    return
+            # Check certificates once in ten minutes
+            time.sleep(max(0, start_time + 600 - time.perf_counter()))
+
+
+def signal_handler(signum, frame):
+    upgrade_thread_stop_event.set()
+    sys.exit(2)
 
 
 def store_phrase(user, phrase):
@@ -197,6 +230,9 @@ def error(bot, update, error):
 
 
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     updater = Updater(os.environ['TELEGRAM_BOT_TOKEN'])
     dp = updater.dispatcher
 
@@ -221,6 +257,10 @@ def main():
     dp.add_error_handler(error)
 
     updater.start_polling()
+
+    upgrade_thread = StampUpgradeThread(bot_data, upgrade_thread_stop_event, updater)
+    upgrade_thread.start()
+
     updater.idle()
 
 
