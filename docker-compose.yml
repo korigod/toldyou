@@ -7,6 +7,7 @@ services:
     toldyou:
         build: toldyou
         env_file: toldyou/envs
+        restart: always
         links:
             - mongo
         depends_on:
@@ -14,6 +15,7 @@ services:
     mongo:
         image: "mongo:4.0.0-xenial"
         env_file: mongo/envs
+        restart: always
         environment:
             - MONGO_DATA_DIR=/data/db
         ports:
