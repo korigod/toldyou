@@ -131,8 +131,7 @@ def upgrade_record_certificate(record):
 def start_command(bot, update):
     update.message.reply_text('Hi! Send me some text to store and verify or use '
                               '/list command to list already stored phrases. '
-                              'Please note: this is an alpha version, your data '
-                              'can be lost.')
+                              'Please note: this is an alpha version.')
 
 
 def store_phrase_handler(bot, update):
