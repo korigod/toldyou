@@ -7,16 +7,25 @@ workspace:
     path: src
 
 pipeline:
-    build_and_publish:
-        image: plugins/docker
-        context: toldyou
-        dockerfile: toldyou/Dockerfile
-        repo: korigod/toldyou
-        tags: latest
-        force_tag: true
+    build:
+        image: docker
+        commands:
+            - docker build -t korigod/toldyou:latest toldyou
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+
+    publish:
+        image: docker
         secrets:
-            - docker_username
-            - docker_password
+            - source: docker_username
+              target: DOCKER_USERNAME
+            - source: docker_password
+              target: DOCKER_PASSWORD
+        commands:
+            - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            - docker push korigod/toldyou:latest
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
 
     deploy:
         image: docker
