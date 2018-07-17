@@ -1,0 +1,29 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
+workspace:
+    base: /build
+    path: src
+
+pipeline:
+    build_and_publish:
+        image: plugins/docker
+        context: toldyou
+        dockerfile: toldyou/Dockerfile
+        repo: korigod/toldyou
+        tags: latest
+        force_tag: true
+        secrets:
+            - docker_username
+            - docker_password
+
+    deploy:
+        image: docker
+        commands:
+            - docker pull korigod/toldyou
+            - docker stack deploy --with-registry-auth -c docker-compose.yml toldyou
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /etc/toldyou/toldyou/envs:/build/src/toldyou/envs
+            - /etc/toldyou/mongo/envs:/build/src/mongo/envs
