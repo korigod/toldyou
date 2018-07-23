@@ -18,4 +18,4 @@ RUN apt-get update \
 
 COPY . /app
 
-CMD python toldyou.py
+CMD ["python", "toldyou.py"]
