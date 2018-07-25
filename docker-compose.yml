@@ -15,4 +15,4 @@ services:
         environment:
             - MONGO_DATA_DIR=/data/db
         volumes:
-            - /etc/toldyou/mongo/data:/data/db
+            - /packages/toldyou/mongo/data:/data/db
